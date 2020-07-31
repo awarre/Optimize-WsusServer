@@ -1,6 +1,5 @@
 ![GitHub](https://img.shields.io/github/license/awarre/Optimize-WsusServer?style=flat-square) ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/awarre/Optimize-WsusServer?include_prereleases&style=flat-square)
-
-#Optimize-WsusServer.PS1
+# Optimize-WsusServer.PS1
 
 <!-- ABOUT THE PROJECT -->
 ### About The Project
