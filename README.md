@@ -1,7 +1,5 @@
 <p align="center">
-
-  <h3 align="center"Optimize-WsusServer</h3>
-
+    <h3 align="center">Optimize-WsusServer.PS1</h3>
 </p>
 
 <!-- TABLE OF CONTENTS -->
@@ -23,7 +21,7 @@ Comprehensive Windows Server Update Services (WSUS) cleanup, optimization, maint
 
 Free and open source: [MIT License](https://github.com/awarre/Optimize-WsusServer/blob/master/LICENSE)
 
-####Features
+**Features**
 * Deep cleaning search and removal of unnecessary updates and drives by product title and update title.
 * IIS Configuration validation and optimization.
 * Disable device driver syncronization and caching.
