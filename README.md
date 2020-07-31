@@ -1,5 +1,4 @@
-![GitHub](https://img.shields.io/github/license/awarre/Optimize-WsusServer?style=flat-square) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/awarre/Optimize-WsusServer?style=flat-square)
-
+![GitHub](https://img.shields.io/github/license/awarre/Optimize-WsusServer?style=flat-square) ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/awarre/Optimize-WsusServer?include_prereleases&style=flat-square)
 # Optimize-WsusServer.PS1
 
 <!-- ABOUT THE PROJECT -->
@@ -47,37 +46,37 @@ Optimize-WsusServer.ps1 -FirstRun
 ```
 Presents a series of prompts for user to initiate all recommended first run optimization tasks.
 
-```
+```powershell
 Optimize-WsusServer.ps1 -DisableDrivers
 ```
 Disable device driver syncronization and caching.
 
-```
+```powershell
 Optimize-WsusServer.ps1 -DeepClean
 ```
 Searches through most likely categories for unneeded updates and drivers to free up massive amounts of storage and improve database responsiveness. Prompts user to approve removal before deletion.
 
-```
+```powershell
 Optimize-WsusServer.ps1 -CheckConfig
 ```
 Validates current WSUS IIS configuration against recommended settings. Helps prevent frequent WSUS/IIS/SQL service crashes and the "RESET SERVER NODE" error.
 
-```
+```powershell
 Optimize-WsusServer.ps1 -OptimizeServer
 ```
 Runs all of Microsoft's built-in WSUS cleanup processes.
 
-```
+```powershell
 Optimize-WsusServer.ps1 -OptimizeDatabase
 ```
 Runs Microsoft's recommended SQL reindexing script.
 
-```
+```powershell
 Optimize-WsusServer.ps1 -InstallDailyTask
 ```
 Creates a scheduled task to run the OptimizeServer function nightly.
 
-```  
+```powershell
 Optimize-WsusServer.ps1 -InstallWeeklyTask
 ```
 Creates a scheduled task to run the OptimizeDatabase function weekly.
