@@ -36,7 +36,7 @@
     Creates a scheduled task to run the OptimizeDatabase function weekly.
 
 .NOTES
-  Version:        1.0
+  Version:        0.1
   Author:         Austin Warren
   Creation Date:  2020/07/31
   

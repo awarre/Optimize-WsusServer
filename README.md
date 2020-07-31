@@ -1,22 +1,8 @@
-<p align="center">
-    <h3 align="center">Optimize-WsusServer.PS1</h3>
-</p>
-
-<!-- TABLE OF CONTENTS -->
-## Table of Contents
-
-* [About the Project](#about-the-project)
-  * [Built With](#built-with)
-* [Getting Started](#getting-started)
-  * [Prerequisites](#prerequisites)
-  * [Installation](#installation)
-* [Usage](#usage)
-* [License](#license)
-* [Contact](#contact)
-* [References](#references)
+![GitHub](https://img.shields.io/github/license/awarre/Optimize-WsusServer?style=flat-square) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/awarre/Optimize-WsusServer?style=flat-square)
+#Optimize-WsusServer.PS1
 
 <!-- ABOUT THE PROJECT -->
-## About The Project
+### About The Project
 Comprehensive Windows Server Update Services (WSUS) cleanup, optimization, maintenance, and configuration PowerShell script.
 
 Free and open source: [MIT License](https://github.com/awarre/Optimize-WsusServer/blob/master/LICENSE)
@@ -29,9 +15,15 @@ Free and open source: [MIT License](https://github.com/awarre/Optimize-WsusServe
 * Microsoft best practice WSUS database optimization and re-indexing
 * Creation of daily and weekly optimization scheduled tasks.
 
-### Built With
-This section should list any major frameworks that you built your project using. Leave any add-ons/plugins for the acknowledgements section. Here are a few examples.
-* [Powershell](https://docs.microsoft.com/en-us/powershell/)
+<!-- TABLE OF CONTENTS -->
+## Table of Contents
+* [Getting Started](#getting-started)
+  * [Prerequisites](#prerequisites)
+  * [Installation](#installation)
+* [Usage](#usage)
+* [License](#license)
+* [Contact](#contact)
+* [References](#references)
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -55,37 +47,37 @@ Optimize-WsusServer.ps1 -FirstRun
 Presents a series of prompts for user to initiate all recommended first run optimization tasks.
 
 ```
-Optimize-WsusServer.PS1 -DisableDrivers
+Optimize-WsusServer.ps1 -DisableDrivers
 ```
 Disable device driver syncronization and caching.
 
 ```
-Optimize-WsusServer.PS1 -DeepClean
+Optimize-WsusServer.ps1 -DeepClean
 ```
 Searches through most likely categories for unneeded updates and drivers to free up massive amounts of storage and improve database responsiveness. Prompts user to approve removal before deletion.
 
 ```
-Optimize-WsusServer.PS1 -CheckConfig
+Optimize-WsusServer.ps1 -CheckConfig
 ```
 Validates current WSUS IIS configuration against recommended settings. Helps prevent frequent WSUS/IIS/SQL service crashes and the "RESET SERVER NODE" error.
 
 ```
-Optimize-WsusServer.PS1 -OptimizeServer
+Optimize-WsusServer.ps1 -OptimizeServer
 ```
 Runs all of Microsoft's built-in WSUS cleanup processes.
 
 ```
-Optimize-WsusServer.PS1 -OptimizeDatabase
+Optimize-WsusServer.ps1 -OptimizeDatabase
 ```
 Runs Microsoft's recommended SQL reindexing script.
 
 ```
-Optimize-WsusServer.PS1 -InstallDailyTask
+Optimize-WsusServer.ps1 -InstallDailyTask
 ```
 Creates a scheduled task to run the OptimizeServer function nightly.
 
 ```  
-Optimize-WsusServer.PS1 -InstallWeeklyTask
+Optimize-WsusServer.ps1 -InstallWeeklyTask
 ```
 Creates a scheduled task to run the OptimizeDatabase function weekly.
 
