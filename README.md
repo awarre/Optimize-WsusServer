@@ -10,9 +10,9 @@ Free and open source: [MIT License](https://github.com/awarre/Optimize-WsusServe
 **Features**
 * Deep cleaning search and removal of unnecessary updates and drives by product title and update title.
 * IIS Configuration validation and optimization.
-* Disable device driver syncronization and caching.
-* WSUS integrated update and computer cleanup
-* Microsoft best practice WSUS database optimization and re-indexing
+* Disable device driver synchronization and caching.
+* WSUS integrated update and computer cleanup.
+* Microsoft best practice WSUS database optimization and re-indexing.
 * Creation of daily and weekly optimization scheduled tasks.
 
 <!-- TABLE OF CONTENTS -->
@@ -49,7 +49,7 @@ Presents a series of prompts for user to initiate all recommended first run opti
 ```powershell
 Optimize-WsusServer.ps1 -DisableDrivers
 ```
-Disable device driver syncronization and caching.
+Disable device driver synchronization and caching.
 
 ```powershell
 Optimize-WsusServer.ps1 -DeepClean
