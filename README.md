@@ -8,7 +8,8 @@ Comprehensive Windows Server Update Services (WSUS) cleanup, optimization, maint
 Free and open source: [MIT License](https://github.com/awarre/Optimize-WsusServer/blob/master/LICENSE)
 
 **Features**
-* Deep cleaning search and removal of unnecessary updates and drives by product title and update title.
+* Deep cleaning search and removal of unnecessary updates by product title and update title.
+* Removal of device drivers from WSUS repository (greatly improves speed, reliability, and reduces storage space needed).
 * IIS Configuration validation and optimization.
 * Disable device driver synchronization and caching.
 * WSUS integrated update and computer cleanup.
