@@ -476,10 +476,12 @@ function New-WsusMaintainenceTask($interval) {
         'Daily' {
             $trigger = New-ScheduledTaskTrigger -Daily -At "12pm"
             $scriptAction = "-OptimizeServer"
+            Break
         }
         'Weekly' {
             $trigger = New-ScheduledTaskTrigger -Weekly -At "2am" -DaysOfWeek Sunday
             $scriptAction = "-OptimizeDatabase"
+            Break
         }
         Default {}
     }
@@ -649,6 +651,7 @@ function Update-WsusIISConfig ($settingKey, $recommendedValue) {
         'QueueLength' {
             # Queue Length
             Set-IISConfigAttributeValue -ConfigElement $wsusPoolConfig -AttributeName "queueLength" -AttributeValue $recommendedValue
+            Break
         }
         'LoadBalancerCapabilities' {
             # Failure Config Root
@@ -656,24 +659,29 @@ function Update-WsusIISConfig ($settingKey, $recommendedValue) {
 
             # Load Balancer Capabilities
             Set-IISConfigAttributeValue -ConfigElement $wsusPoolFailureConfig -AttributeName "loadBalancerCapabilities" -AttributeValue $recommendedValue
+            Break
         }
         'CpuResetInterval' {
             # CPU Reset Interval
             $wsusPoolCpuConfig = Get-IISConfigElement -ConfigElement $wsusPoolConfig -ChildElementName "cpu"
             Set-IISConfigAttributeValue -ConfigElement $wsusPoolCpuConfig -AttributeName "resetInterval" -AttributeValue ([timespan]::FromMinutes($recommendedValue))
+            Break
         }
         'RecyclingMemory' {
             Set-IISConfigAttributeValue -ConfigElement $wsusPoolRecyclingConfig -AttributeName "memory" -AttributeValue $recommendedValue
-            
+            Break
         }
         'RecyclingPrivateMemory' {
             Set-IISConfigAttributeValue -ConfigElement $wsusPoolRecyclingConfig -AttributeName "privateMemory" -AttributeValue $recommendedValue
+            Break
         }
         'ClientMaxRequestLength' {
             Set-WebConfigurationProperty -PSPath 'IIS:\Sites\WSUS Administration\ClientWebService' -Filter "system.web/httpRuntime" -Name "maxRequestLength" -Value $recommendedValue
+            Break
         }
         'ClientExecutionTimeout' {
             Set-WebConfigurationProperty -PSPath 'IIS:\Sites\WSUS Administration\ClientWebService' -Filter "system.web/httpRuntime" -Name "executionTimeout" -Value ([timespan]::FromSeconds($recommendedValue))
+            Break
         }
         Default {}
     }
