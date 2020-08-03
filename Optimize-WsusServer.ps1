@@ -12,7 +12,7 @@
         -Creation of daily and weekly optimization scheduled tasks.
 
 .PARAMETER FirstRun
-    Presents a series of prompts for user to initiate all recommended first run optimization tasks.
+    Presents a series of prompts for user to initiate all recommended first run optimization tasks. Additional parameters will be ignored, as they will be redundant.
 
 .PARAMETER DisableDrivers
     Disable device driver syncronization and caching.
@@ -36,7 +36,7 @@
     Creates a scheduled task to run the OptimizeDatabase function weekly.
 
 .NOTES
-  Version:        0.1
+  Version:        0.1.1
   Author:         Austin Warren
   Creation Date:  2020/07/31
   
@@ -51,28 +51,28 @@
 param (
     [Parameter()]
     [switch]
-    $FirstRun = $false,
+    $FirstRun,
     [Parameter()]
     [switch]
-    $DisableDrivers = $false,
+    $DisableDrivers,
     [Parameter()]
     [switch]
-    $DeepClean = $false,
+    $DeepClean,
     [Parameter()]
     [switch]
-    $CheckConfig = $false,
+    $CheckConfig,
     [Parameter()]
     [switch]
-    $InstallDailyTask = $false,
+    $InstallDailyTask,
     [Parameter()]
     [switch]
-    $InstallWeeklyTask = $false,
+    $InstallWeeklyTask,
     [Parameter()]
     [switch]
-    $OptimizeServer = $false,
+    $OptimizeServer,
     [Parameter()]
     [switch]
-    $OptimizeDatabase = $false
+    $OptimizeDatabase
 )
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
@@ -361,9 +361,9 @@ function Confirm-Prompt ($prompt) {
     $confirm = Read-Host
 
     if ($confirm.ToLower() -eq 'y') {
-        return 1
+        return $true
     } else {
-        return 0
+        return $false
     }
 }
 
@@ -817,63 +817,54 @@ function Disable-Drivers {
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
-# Check commandline parameters. This cannot be a switch statement because all of these could be run together
-If ($FirstRun) {
-    Write-Host "All of the following processes are highly recommended!" -ForegroundColor Blue -BackgroundColor White
-
-    if (Confirm-Prompt "Run WSUS IIS configuration optimization?") {
-        $wsusIISConfig = Get-WsusIISConfig
-        Test-WsusIISConfig $wsusIISConfig $recommendedIISSettings
+# Check commandline parameters.
+switch($true) {
+    ($FirstRun) {
+        Write-Host "All of the following processes are highly recommended!" -ForegroundColor Blue -BackgroundColor White
+    
+        switch($true) {
+            (Confirm-Prompt "Run WSUS IIS configuration optimization?") {
+                $wsusIISConfig = Get-WsusIISConfig
+                Test-WsusIISConfig $wsusIISConfig $recommendedIISSettings
+            }
+            (Confirm-Prompt "Run WSUS database optimization?") {
+                Optimize-WsusDatabase
+            }
+            (Confirm-Prompt "Run WSUS server optimization?") {
+                Optimize-WsusUpdates
+            }
+            (Confirm-Prompt "Create daily WSUS server optimization scheduled task?") {
+                New-WsusMaintainenceTask('Daily')
+            }
+            (Confirm-Prompt "Create weekly WSUS database optimization scheduled task?") {
+                New-WsusMaintainenceTask('Weekly')
+            }
+            (Confirm-Prompt "Disable device driver synchronization?") {
+                Disable-Drivers
+            }
+        }
+        Break
     }
-
-    if (Confirm-Prompt "Disable device driver synchronization?") {
+    ($DisableDrivers) {
         Disable-Drivers
     }
-    
-    if (Confirm-Prompt "Run WSUS database optimization?") {
-        Optimize-WsusDatabase
-    }
-    
-    if (Confirm-Prompt "Run WSUS server optimization?") {
-        Optimize-WsusUpdates
-    }
-
-    if (Confirm-Prompt "Create daily WSUS server optimization scheduled task?") {
-        New-WsusMaintainenceTask('Daily')
-    }
-    
-    if (Confirm-Prompt "Create weekly WSUS database optimization scheduled task?") {
-        New-WsusMaintainenceTask('Weekly')
-    }
-} else {
-    if ($DisableDrivers) {
-        Disable-Drivers
-    }
-
-    If ($DeepClean) {
+    ($DeepClean) {
         DeepClean $unneededUpdatesbyTitle $unneededUpdatesbyProductTitles
     }
-    
-    If ($InstallDailyTask) {
+    ($InstallDailyTask) {
         New-WsusMaintainenceTask('Daily')
     }
-    
-    If ($InstallWeeklyTask) {
+    ($InstallWeeklyTask) {
         New-WsusMaintainenceTask('Weekly')
     }
-    
-    If ($CheckConfig) {
+    ($CheckConfig) {
         $wsusIISConfig = Get-WsusIISConfig
         Test-WsusIISConfig $wsusIISConfig $recommendedIISSettings
     }
-    
-    If ($OptimizeServer) {
+    ($OptimizeServer) {
         Optimize-WsusUpdates
-        New-Item -Path "c:\Daily.txt" -ItemType File
     }
-    
-    If ($OptimizeDatabase) {
+    ($OptimizeDatabase) {
         Optimize-WsusDatabase
-        New-Item -Path "c:\Weekly.txt" -ItemType File
     }
 }

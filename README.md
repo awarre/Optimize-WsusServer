@@ -45,7 +45,7 @@ Optimize-WsusServer.ps1 -FirstRun
 ```powershell
 Optimize-WsusServer.ps1 -FirstRun
 ```
-Presents a series of prompts for user to initiate all recommended first run optimization tasks.
+Presents a series of prompts for user to initiate all recommended first run optimization tasks. Additional parameters will be ignored, as they will be redundant.
 
 ```powershell
 Optimize-WsusServer.ps1 -DisableDrivers
