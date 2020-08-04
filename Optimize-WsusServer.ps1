@@ -592,6 +592,12 @@ function Test-WsusIISConfig ($settings, $recommended) {
     Hash of recommended WSUS IIS settings.
     #>
 
+    # Check if the IIS WSUS Client Web Service web.config is read only and make it RW if so
+    $wsusWebConfigPath = WebConfigFile -PSPath 'IIS:\Sites\WSUS Administration\ClientWebService' | Select-Object -ExpandProperty 'FullName'
+    if (Get-ItemProperty -Path $wsusWebConfigPath | Select-Object -ExpandProperty IsReadOnly) {
+        Set-ItemProperty -Path $wsusWebConfigPath -Name IsReadOnly -Value $false
+    }
+
     # Delay IIS configuration commits until we're done updating all necessary settings
     Start-IISCommitDelay
 
