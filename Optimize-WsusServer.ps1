@@ -31,7 +31,7 @@
 
 .PARAMETER InstallDailyTask
     Creates a scheduled task to run the OptimizeServer function nightly.
-    
+
 .PARAMETER InstallWeeklyTask
     Creates a scheduled task to run the OptimizeDatabase function weekly.
 
@@ -39,7 +39,7 @@
   Version:        0.1.1
   Author:         Austin Warren
   Creation Date:  2020/07/31
-  
+
 .EXAMPLE
   Optimize-WsusServer.ps1 -FirstRun
   Optimize-WsusServer.ps1 -DeepClean
@@ -170,7 +170,7 @@ REFERENCES
 $createCustomIndexesSQLQuery = @"
 USE [SUSDB]
 IF 0 = (SELECT COUNT(*) as index_count
-    FROM sys.indexes 
+    FROM sys.indexes
     WHERE object_id = OBJECT_ID('[dbo].[tbLocalizedPropertyForRevision]')
     AND name='nclLocalizedPropertyID')
 BEGIN
@@ -186,14 +186,14 @@ BEGIN
 END ;
 GO
 IF 0 = (SELECT COUNT(*) as index_count
-    FROM sys.indexes 
+    FROM sys.indexes
     WHERE object_id = OBJECT_ID('[dbo].[tbRevisionSupersedesUpdate]')
     AND name='nclSupercededUpdateID')
 BEGIN
 -- Create custom index in tbRevisionSupersedesUpdate
-	CREATE NONCLUSTERED INDEX [nclSupercededUpdateID] ON [dbo].[tbRevisionSupersedesUpdate] 
-	( 
-		 [SupersededUpdateID] ASC 
+	CREATE NONCLUSTERED INDEX [nclSupercededUpdateID] ON [dbo].[tbRevisionSupersedesUpdate]
+	(
+		 [SupersededUpdateID] ASC
 	)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY];
 END
 ELSE
@@ -214,27 +214,27 @@ GO
     Reference: https://support.microsoft.com/en-us/help/4490644/complete-guide-to-microsoft-wsus-and-configuration-manager-sup-maint
 #>
 $wsusDBMaintenanceSQLQuery = @"
-/****************************************************************************** 
-This sample T-SQL script performs basic maintenance tasks on SUSDB 
-1. Identifies indexes that are fragmented and defragments them. For certain 
-   tables, a fill-factor is set in order to improve insert performance. 
-   Based on MSDN sample at http://msdn2.microsoft.com/en-us/library/ms188917.aspx 
-   and tailored for SUSDB requirements 
-2. Updates potentially out-of-date table statistics. 
-******************************************************************************/ 
+/******************************************************************************
+This sample T-SQL script performs basic maintenance tasks on SUSDB
+1. Identifies indexes that are fragmented and defragments them. For certain
+   tables, a fill-factor is set in order to improve insert performance.
+   Based on MSDN sample at http://msdn2.microsoft.com/en-us/library/ms188917.aspx
+   and tailored for SUSDB requirements
+2. Updates potentially out-of-date table statistics.
+******************************************************************************/
 
-USE SUSDB; 
-GO 
+USE SUSDB;
+GO
 SET NOCOUNT ON;
 
--- Rebuild or reorganize indexes based on their fragmentation levels 
+-- Rebuild or reorganize indexes based on their fragmentation levels
 DECLARE @work_to_do TABLE (
     objectid int
     , indexid int
     , pagedensity float
     , fragmentation float
     , numrows int
-) 
+)
 
 DECLARE @objectid int;
 DECLARE @indexid int;
@@ -262,7 +262,7 @@ SELECT
 FROM
     sys.dm_db_index_physical_stats (DB_ID(), NULL, NULL , NULL, 'SAMPLED') AS f
 WHERE
-    (f.avg_page_space_used_in_percent < 85.0 and f.avg_page_space_used_in_percent/100.0 * page_count < page_count - 1) 
+    (f.avg_page_space_used_in_percent < 85.0 and f.avg_page_space_used_in_percent/100.0 * page_count < page_count - 1)
     or (f.page_count > 50 and f.avg_fragmentation_in_percent > 15.0)
     or (f.page_count > 10 and f.avg_fragmentation_in_percent > 80.0)
 
@@ -274,8 +274,8 @@ SELECT @numpages = sum(ps.used_page_count)
 FROM
     @work_to_do AS fi
     INNER JOIN sys.indexes AS i ON fi.objectid = i.object_id and fi.indexid = i.index_id
-    INNER JOIN sys.dm_db_partition_stats AS ps on i.object_id = ps.object_id and i.index_id = ps.index_id 
- 
+    INNER JOIN sys.dm_db_partition_stats AS ps on i.object_id = ps.object_id and i.index_id = ps.index_id
+
 -- Declare the cursor for the list of indexes to be processed.
 DECLARE curIndexes CURSOR FOR SELECT * FROM @work_to_do
 
@@ -288,7 +288,7 @@ BEGIN
     FETCH NEXT FROM curIndexes
     INTO @objectid, @indexid, @density, @fragmentation, @numrows;
     IF @@FETCH_STATUS < 0 BREAK;
- 
+
     SELECT
         @objectname = QUOTENAME(o.name)
         , @schemaname = QUOTENAME(s.name)
@@ -297,7 +297,7 @@ BEGIN
         INNER JOIN sys.schemas as s ON s.schema_id = o.schema_id
     WHERE
         o.object_id = @objectid;
- 
+
     SELECT
         @indexname = QUOTENAME(name)
         , @fillfactorset = CASE fill_factor WHEN 0 THEN 0 ELSE 1 END
@@ -305,14 +305,14 @@ BEGIN
         sys.indexes
     WHERE
         object_id = @objectid AND index_id = @indexid;
- 
-    IF ((@density BETWEEN 75.0 AND 85.0) AND @fillfactorset = 1) OR (@fragmentation < 30.0) 
-        SET @command = N'ALTER INDEX ' + @indexname + N' ON ' + @schemaname + N'.' + @objectname + N' REORGANIZE'; 
-    ELSE IF @numrows >= 5000 AND @fillfactorset = 0 
-        SET @command = N'ALTER INDEX ' + @indexname + N' ON ' + @schemaname + N'.' + @objectname + N' REBUILD WITH (FILLFACTOR = 90)'; 
-    ELSE 
-        SET @command = N'ALTER INDEX ' + @indexname + N' ON ' + @schemaname + N'.' + @objectname + N' REBUILD'; 
-    PRINT convert(nvarchar, getdate(), 121) + N' Executing: ' + @command; 
+
+    IF ((@density BETWEEN 75.0 AND 85.0) AND @fillfactorset = 1) OR (@fragmentation < 30.0)
+        SET @command = N'ALTER INDEX ' + @indexname + N' ON ' + @schemaname + N'.' + @objectname + N' REORGANIZE';
+    ELSE IF @numrows >= 5000 AND @fillfactorset = 0
+        SET @command = N'ALTER INDEX ' + @indexname + N' ON ' + @schemaname + N'.' + @objectname + N' REBUILD WITH (FILLFACTOR = 90)';
+    ELSE
+        SET @command = N'ALTER INDEX ' + @indexname + N' ON ' + @schemaname + N'.' + @objectname + N' REBUILD';
+    PRINT convert(nvarchar, getdate(), 121) + N' Executing: ' + @command;
     EXEC (@command);
     PRINT convert(nvarchar, getdate(), 121) + N' Done.';
 END
@@ -323,13 +323,13 @@ DEALLOCATE curIndexes;
 
 IF EXISTS (SELECT * FROM @work_to_do)
 BEGIN
-    PRINT 'Estimated number of pages in fragmented indexes: ' + cast(@numpages as nvarchar(20)) 
+    PRINT 'Estimated number of pages in fragmented indexes: ' + cast(@numpages as nvarchar(20))
     SELECT @numpages = @numpages - sum(ps.used_page_count)
     FROM
         @work_to_do AS fi
-        INNER JOIN sys.indexes AS i ON fi.objectid = i.object_id and fi.indexid = i.index_id 
-        INNER JOIN sys.dm_db_partition_stats AS ps on i.object_id = ps.object_id and i.index_id = ps.index_id 
- 
+        INNER JOIN sys.indexes AS i ON fi.objectid = i.object_id and fi.indexid = i.index_id
+        INNER JOIN sys.dm_db_partition_stats AS ps on i.object_id = ps.object_id and i.index_id = ps.index_id
+
     PRINT 'Estimated number of pages freed: ' + cast(@numpages as nvarchar(20))
 END
 GO
@@ -347,13 +347,13 @@ function Confirm-Prompt ($prompt) {
     <#
     .SYNOPSIS
     Y/N confirmation prompt.
-    
+
     .DESCRIPTION
     Displays Y/N confirmation prompt and returns true or false.
-    
+
     .PARAMETER prompt
     String displayed as prompt
-    
+
     .EXAMPLE
     Confirm-Prompt "Is this a question?"
     #>
@@ -381,19 +381,19 @@ function Optimize-WsusUpdates {
 
     Write-Host "Deleting obsolete computers from WSUS database"
     Invoke-WsusServerCleanup -CleanupObsoleteComputers
-    
+
     Write-Host "Deleting obsolete updates"
     Invoke-WsusServerCleanup -CleanupObsoleteUpdates
-    
+
     Write-Host "Deleting unneeded content files"
     Invoke-WsusServerCleanup -CleanupUnneededContentFiles
-    
+
     Write-Host "Deleting obsolete update revisions"
     Invoke-WsusServerCleanup -CompressUpdates
-    
+
     Write-Host "Declining expired updates"
     Invoke-WsusServerCleanup -DeclineExpiredUpdates
-    
+
     Write-Host "Declining superceded updates"
     Invoke-WsusServerCleanup -DeclineSupersededUpdates
 }
@@ -423,7 +423,7 @@ function Optimize-WsusDatabase {
     elseif (($wsusSqlServerName -match '##WIN') -Or ($wsusSqlServerName -match '##SSEE')) {
         #Check OS version
         $osVersion = [decimal]("$(([environment]::OSVersion.Version).Major).$(([environment]::OSVersion.Version).Minor)")
-        
+
         if ($osVersion -gt 6.2) {
             $serverInstance = 'np:\\.\pipe\MICROSOFT##WID\tsql\query'
         }
@@ -487,9 +487,9 @@ function New-WsusMaintainenceTask($interval) {
     }
 
     $scriptName = Split-Path $MyInvocation.PSCommandPath -Leaf
-    
+
     #Create "C:\Scripts" to store PS script
-    $null = New-Item -Path "$scriptPath" -ItemType Directory -Force 
+    $null = New-Item -Path "$scriptPath" -ItemType Directory -Force
     Write-Host "Created Directory: $scriptPath"
 
     # Copy current script to script
@@ -556,7 +556,7 @@ function Get-WsusIISConfig {
 
     # Recycling Config Root
     $wsusPoolRecyclingConfig = Get-IISConfigElement -ConfigElement $wsusPoolConfig -ChildElementName "recycling" | Get-IISConfigElement -ChildElementName "periodicRestart"
-    
+
     $recyclingMemory = Get-IISConfigAttributeValue -ConfigElement $wsusPoolRecyclingConfig -AttributeName "memory"
     $recyclingPrivateMemory = Get-IISConfigAttributeValue -ConfigElement $wsusPoolRecyclingConfig -AttributeName "privateMemory"
 
@@ -566,7 +566,7 @@ function Get-WsusIISConfig {
     $clientExecutionTimeout = ($clientWebServiceConfig | select-object -ExpandProperty executionTimeout).TotalSeconds
 
     # Return hash of IIS settings
-    @{ 
+    @{
         QueueLength              = $queueLength
         LoadBalancerCapabilities = $loadBalancerCapabilities
         CpuResetInterval         = $cpuResetInterval
@@ -581,13 +581,13 @@ function Test-WsusIISConfig ($settings, $recommended) {
     <#
     .SYNOPSIS
     Compares current WSUS IIS settings to recommended values.
-    
+
     .DESCRIPTION
     Compares current WSUS IIS settings to recommended values. Prompts user to commit changes.
-    
+
     .PARAMETER settings
     Hash of current WSUS IIS settings.
-    
+
     .PARAMETER recommended
     Hash of recommended WSUS IIS settings.
     #>
@@ -600,7 +600,7 @@ function Test-WsusIISConfig ($settings, $recommended) {
         # This could be better designed to match minimum requirements instead of specific values, but it isn't.
         If ($recommended[$key] -ne $settings[$key]) {
             Write-Host "$key`n`tCurrent:`t$($settings[$key])`n`tRecommended:`t$($recommended[$key])" -BackgroundColor Black -ForegroundColor Red
-            
+
             if (Confirm-Prompt "Update $key to recommended value?") {
                 Update-WsusIISConfig $key $recommended[$key]
             }
@@ -692,13 +692,13 @@ function Update-WsusIISConfig ($settingKey, $recommendedValue) {
 function RemoveUpdates($searchStrings, $updateProp, $force=$false) {
     [reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration") | Out-Null
     $wsusServer = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer();
-    $scope = New-Object Microsoft.UpdateServices.Administration.UpdateScope   
+    $scope = New-Object Microsoft.UpdateServices.Administration.UpdateScope
     $updates = $wsusServer.GetUpdates($scope)
     $declinedCount = 0
     $searchCount = 0
     $userMsg = 'Found'
-    $color = 'Yellow'    
-    
+    $color = 'Yellow'
+
     if ($force) {
         $userMsg = 'Declined'
         $color = 'Red'
@@ -723,13 +723,13 @@ function RemoveUpdates($searchStrings, $updateProp, $force=$false) {
                 }
             }
         }
-        
+
         if ($searchCount -gt 0) {
             Write-Host "$searchCount `"$searchString`" Updates $userMsg!" -ForegroundColor "Blue" -BackgroundColor White
         } else {
             Write-Host "      n$searchCount `"$searchString`" Updates $userMsg" -ForegroundColor "White"
         }
-        
+
         #Prompt user to confirm declining updates. Do no prompt if force flag is enable to prevent loop
         if ((-not $force) -and ($searchCount -ne 0)){
             $confirm = Confirm-Prompt "Are you sure you want to decline all ($searchCount) listed ($searchString) updates?"
@@ -753,7 +753,7 @@ function DeepClean ($titles, $productTitles) {
     Checks for unneeded WSUS updates to be deleted.
 
     .DESCRIPTION
-    Checks for unneeded WSUS updates by product category to be deleted. This 
+    Checks for unneeded WSUS updates by product category to be deleted.
 
     .PARAMETER titles
     Parameter description
@@ -781,10 +781,10 @@ function DeepClean ($titles, $productTitles) {
     #>
    
     $declinedTotal = 0
-    
+
     #Remove updates by Title
     Write-Host "Searching for unneeded updates by Title. This process can take a long time. Please wait." -BackgroundColor White -ForegroundColor Blue
-    $declinedTotal += RemoveUpdates $titles 'Title' 
+    $declinedTotal += RemoveUpdates $titles 'Title'
 
     #Remove updates by ProductTitles
     Write-Host "Searching for unneeded updates by ProductTitle. This process can take a long time. Please wait." -BackgroundColor White -ForegroundColor Blue
@@ -802,7 +802,7 @@ function Disable-Drivers {
     <#
     .SYNOPSIS
     Disable WSUS device driver syncronization and caching.
-    
+
     .DESCRIPTION
     Disable WSUS device driver syncronization and caching. Automatic driver sychronization is one of the primary causes of WSUS slowness, crashing, and wasted storage space.
 
@@ -811,9 +811,8 @@ function Disable-Drivers {
     #>
 
     Get-WsusClassification | Where-Object -FilterScript {$_.Classification.Title -Eq "Drivers"} | Set-WsusClassification -Disable
-    Get-WsusClassification | Where-Object -FilterScript {$_.Classification.Title -Eq "Driver Sets"} | Set-WsusClassification -Disable  
+    Get-WsusClassification | Where-Object -FilterScript {$_.Classification.Title -Eq "Driver Sets"} | Set-WsusClassification -Disable
 }
-
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
@@ -821,7 +820,7 @@ function Disable-Drivers {
 switch($true) {
     ($FirstRun) {
         Write-Host "All of the following processes are highly recommended!" -ForegroundColor Blue -BackgroundColor White
-    
+
         switch($true) {
             (Confirm-Prompt "Run WSUS IIS configuration optimization?") {
                 $wsusIISConfig = Get-WsusIISConfig
