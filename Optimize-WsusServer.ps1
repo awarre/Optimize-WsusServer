@@ -91,7 +91,7 @@ $recommendedIISSettings = @{
 }
 
 <#
-DeepClean Tips
+DeepClean
 
 To find potentially unneeded updates:
     1. WSUS management console
@@ -422,7 +422,7 @@ function Optimize-WsusDatabase {
     if ($wsusSqlServerName -match 'SQLEXPRESS') {
         $serverInstance = 'np:\\.\pipe\MSSQL$SQLEXPRESS\sql\query'
     }
-    elseif (($wsusSqlServerName -match '##WIN') -Or ($wsusSqlServerName -match '##SSEE')) {
+    elseif (($wsusSqlServerName -match '##WID') -Or ($wsusSqlServerName -match '##SSEE')) {
         #Check OS version
         $osVersion = [decimal]("$(([environment]::OSVersion.Version).Major).$(([environment]::OSVersion.Version).Minor)")
 
