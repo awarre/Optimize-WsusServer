@@ -119,14 +119,13 @@ $unneededUpdatesbyProductTitles = @(
     "Windows 2000",
     "Windows 7",
     "Windows 8 Embedded",
-    "Windows 8",
     "Windows 8.1",
-    "Windows Server 2003",
+    "Windows 8",
+    "Windows Server 2003 R2",
     "Windows Server 2003",
     "Windows Server 2008 R2",
     "Windows Server 2008",
     "Windows Ultimate Extras",
-    "Windows Vista",
     "Windows Vista",
     "Windows XP Embedded",
     "Windows XP x64 Edition",
@@ -695,7 +694,7 @@ function Update-WsusIISConfig ($settingKey, $recommendedValue) {
     Write-Host "Updated IIS Setting: $settingKey, $recommendedValue" -BackgroundColor Green -ForegroundColor Black
 }
 
-function RemoveUpdates ($searchStrings, $updateProp, $force=$false) {
+function Remove-Updates ($searchStrings, $updateProp, $force=$false) {
     [reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration") | Out-Null
     $wsusServer = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer();
     $scope = New-Object Microsoft.UpdateServices.Administration.UpdateScope
@@ -707,7 +706,7 @@ function RemoveUpdates ($searchStrings, $updateProp, $force=$false) {
 
     if ($force) {
         $userMsg = 'Declined'
-        $color = 'Red'
+        $color = 'DarkGreen'
     }
 
     Write-Host "Update Property: $updateProp"
@@ -722,7 +721,7 @@ function RemoveUpdates ($searchStrings, $updateProp, $force=$false) {
                 if($update.IsApproved){
 
                     if ($force){
-                        #$update.Decline()
+                        $update.Decline()
                     }
                     $searchCount = $searchCount + 1
                     Write-Host "   [*]$($userMsg): $($update.Title), $($update.ProductTitles) ($searchString)" -ForegroundColor $color
@@ -741,7 +740,7 @@ function RemoveUpdates ($searchStrings, $updateProp, $force=$false) {
             $confirm = Confirm-Prompt "Are you sure you want to decline all ($searchCount) listed ($searchString) updates?"
 
             if ($confirm) {
-                RemoveUpdates @($searchString) $updateProp $true | out-null
+                Remove-Updates @($searchString) $updateProp $true | out-null
             }
         }
 
@@ -753,7 +752,7 @@ function RemoveUpdates ($searchStrings, $updateProp, $force=$false) {
     return $declinedCount
 }
 
-function DeepClean ($titles, $productTitles) {
+function Invoke-DeepClean ($titles, $productTitles) {
     <#
     .SYNOPSIS
     Checks for unneeded WSUS updates to be deleted.
@@ -788,17 +787,19 @@ function DeepClean ($titles, $productTitles) {
    
     $declinedTotal = 0
 
+    Write-Host "Make certain to carefully read the listed updates before choosing to remove them!" -BackgroundColor White -ForegroundColor Green
+
     #Remove updates by Title
     Write-Host "Searching for unneeded updates by Title. This process can take a long time. Please wait." -BackgroundColor White -ForegroundColor Blue
-    $declinedTotal += RemoveUpdates $titles 'Title'
+    $declinedTotal += Remove-Updates $titles 'Title'
 
     #Remove updates by ProductTitles
     Write-Host "Searching for unneeded updates by ProductTitle. This process can take a long time. Please wait." -BackgroundColor White -ForegroundColor Blue
-    $declinedTotal += RemoveUpdates $productTitles 'ProductTitles'
+    $declinedTotal += Remove-Updates $productTitles 'ProductTitles'
 
     #Remove drivers
     Write-Host "Searching for drivers to be removed from WSUS. This process can take a long time. Please wait." -BackgroundColor White -ForegroundColor Blue
-    $declinedTotal += RemoveUpdates @('Drivers') 'UpdateClassificationTitle'
+    $declinedTotal += Remove-Updates @('Drivers') 'UpdateClassificationTitle'
 
     Write-Host "================DEEPCLEAN COMPLETE==================" -BackgroundColor White -ForegroundColor Blue
     Write-Host "$declinedTotal Total Updates Declined" -BackgroundColor White -ForegroundColor Blue
@@ -934,7 +935,7 @@ switch($true) {
         Disable-WsusDriverSync
     }
     ($DeepClean) {
-        DeepClean $unneededUpdatesbyTitle $unneededUpdatesbyProductTitles
+        Invoke-DeepClean $unneededUpdatesbyTitle $unneededUpdatesbyProductTitles
     }
     ($InstallDailyTask) {
         New-WsusMaintainenceTask('Daily')
