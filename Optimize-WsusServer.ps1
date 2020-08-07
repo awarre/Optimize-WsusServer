@@ -38,7 +38,7 @@
     Creates a scheduled task to run the OptimizeDatabase function weekly.
 
 .NOTES
-  Version:        0.1.1
+  Version:        0.1.5
   Author:         Austin Warren
   Creation Date:  2020/07/31
 
@@ -594,12 +594,6 @@ function Test-WsusIISConfig ($settings, $recommended) {
     Hash of recommended WSUS IIS settings.
     #>
 
-    # Check if the IIS WSUS Client Web Service web.config is read only and make it RW if so
-    $wsusWebConfigPath = WebConfigFile -PSPath 'IIS:\Sites\WSUS Administration\ClientWebService' | Select-Object -ExpandProperty 'FullName'
-    if (Get-ItemProperty -Path $wsusWebConfigPath | Select-Object -ExpandProperty IsReadOnly) {
-        Set-ItemProperty -Path $wsusWebConfigPath -Name IsReadOnly -Value $false
-    }
-
     # Delay IIS configuration commits until we're done updating all necessary settings
     Start-IISCommitDelay
 
@@ -684,10 +678,14 @@ function Update-WsusIISConfig ($settingKey, $recommendedValue) {
             Break
         }
         'ClientMaxRequestLength' {
+            # Check if the IIS WSUS Client Web Service web.config is read only and make it RW if so
+            Unblock-WebConfigAcl
             Set-WebConfigurationProperty -PSPath 'IIS:\Sites\WSUS Administration\ClientWebService' -Filter "system.web/httpRuntime" -Name "maxRequestLength" -Value $recommendedValue
             Break
         }
         'ClientExecutionTimeout' {
+            # Check if the IIS WSUS Client Web Service web.config is read only and make it RW if so
+            Unblock-WebConfigAcl
             Set-WebConfigurationProperty -PSPath 'IIS:\Sites\WSUS Administration\ClientWebService' -Filter "system.web/httpRuntime" -Name "executionTimeout" -Value ([timespan]::FromSeconds($recommendedValue))
             Break
         }
@@ -697,7 +695,7 @@ function Update-WsusIISConfig ($settingKey, $recommendedValue) {
     Write-Host "Updated IIS Setting: $settingKey, $recommendedValue" -BackgroundColor Green -ForegroundColor Black
 }
 
-function RemoveUpdates($searchStrings, $updateProp, $force=$false) {
+function RemoveUpdates ($searchStrings, $updateProp, $force=$false) {
     [reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration") | Out-Null
     $wsusServer = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer();
     $scope = New-Object Microsoft.UpdateServices.Administration.UpdateScope
@@ -735,7 +733,7 @@ function RemoveUpdates($searchStrings, $updateProp, $force=$false) {
         if ($searchCount -gt 0) {
             Write-Host "$searchCount `"$searchString`" Updates $userMsg!" -ForegroundColor "Blue" -BackgroundColor White
         } else {
-            Write-Host "      n$searchCount `"$searchString`" Updates $userMsg" -ForegroundColor "White"
+            Write-Host "      $searchCount `"$searchString`" Updates $userMsg" -ForegroundColor "White"
         }
 
         #Prompt user to confirm declining updates. Do no prompt if force flag is enable to prevent loop
@@ -764,13 +762,13 @@ function DeepClean ($titles, $productTitles) {
     Checks for unneeded WSUS updates by product category to be deleted.
 
     .PARAMETER titles
-    Parameter description
+    Array of titles of WSUS titles to search and prompt for removal
 
     .PARAMETER productTitles
-    Parameter description
+    Array of WSUS product titles to search and prompt for removal
 
     .EXAMPLE
-    An example
+    DeepClean $titles $products
 
     .NOTES
     WSUS GetUpdates Method
@@ -806,7 +804,7 @@ function DeepClean ($titles, $productTitles) {
     Write-Host "$declinedTotal Total Updates Declined" -BackgroundColor White -ForegroundColor Blue
 }
 
-function Disable-Drivers {
+function Disable-WsusDriverSync {
     <#
     .SYNOPSIS
     Disable WSUS device driver syncronization and caching.
@@ -820,6 +818,86 @@ function Disable-Drivers {
 
     Get-WsusClassification | Where-Object -FilterScript {$_.Classification.Title -Eq "Drivers"} | Set-WsusClassification -Disable
     Get-WsusClassification | Where-Object -FilterScript {$_.Classification.Title -Eq "Driver Sets"} | Set-WsusClassification -Disable
+}
+
+
+function Unblock-WebConfigAcl {
+    <#
+    .SYNOPSIS
+    Grants local admins access to web.config
+
+    .DESCRIPTION
+    Grants BUILTIN\Administrators ownership and read write access to ClientWebService web.config. Also removes Read Only flag.
+    #>
+
+    $wsusWebConfigPath = Get-WebConfigFile -PSPath 'IIS:\Sites\WSUS Administration\ClientWebService' | Select-Object -ExpandProperty 'FullName'
+
+    Set-FileAclOwner $wsusWebConfigPath 'BUILTIN\Administrators'
+    Set-FileAclPermissions $wsusWebConfigPath 'BUILTIN\Administrators' 'FullControl' 'None' 'None' 'Allow'
+    Set-ItemProperty -Path $wsusWebConfigPath -Name IsReadOnly -Value $false
+}
+
+function Set-FileAclOwner ($file, $owner) {
+    <#
+    .SYNOPSIS
+    Sets NTFS file owner
+
+    .DESCRIPTION
+    Sets NTFS file owner
+
+    .PARAMETER file
+    File path as string
+
+    .PARAMETER owner
+    Account as string to set as owner
+
+    .LINK
+    https://stackoverflow.com/questions/22988384/powershell-change-owner-of-files-and-folders
+    #>
+
+    $acl = Get-Acl($file)
+    $account = New-Object -TypeName System.Security.Principal.NTAccount -ArgumentList $owner
+    $acl.SetOwner($account)
+    Set-Acl -Path $file -AclObject $acl
+}
+
+function Set-FileAclPermissions ($file, $accString, $rights, $inheritanceFlags, $propagationFlags, $type) {
+    <#
+    .SYNOPSIS
+    Set NTFS file permissions
+
+    .DESCRIPTION
+    Set NTFS permissions for specified file
+
+    .PARAMETER file
+    File path as string
+
+    .PARAMETER accString
+    Account to set permissions for as string
+
+    .PARAMETER rights
+    Access Rights - https://docs.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.filesystemrights?view=dotnet-plat-ext-3.1
+
+    .PARAMETER inheritanceFlags
+    Inheritence flags - https://docs.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.inheritanceflags?view=dotnet-plat-ext-3.1
+
+    .PARAMETER propagationFlags
+    Propagation flags - https://docs.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.propagationflags?view=dotnet-plat-ext-3.1
+
+    .PARAMETER type
+    Access control type - https://docs.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.accesscontroltype?view=dotnet-plat-ext-3.1
+
+    .LINK
+    https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-acl?view=powershell-7
+
+    .LINK
+    https://docs.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.filesystemaccessrule.-ctor?view=dotnet-plat-ext-3.1#System_Security_AccessControl_FileSystemAccessRule__ctor_System_String_System_Security_AccessControl_FileSystemRights_System_Security_AccessControl_InheritanceFlags_System_Security_AccessControl_PropagationFlags_System_Security_AccessControl_AccessControlType_
+    #>
+
+    $acl = Get-Acl($file)
+    $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule $accString, $rights, $inheritanceFlags, $propagationFlags, $type
+    $acl.SetAccessRule($accessRule)
+    Set-Acl -Path $file -AclObject $acl
 }
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
@@ -847,13 +925,13 @@ switch($true) {
                 New-WsusMaintainenceTask('Weekly')
             }
             (Confirm-Prompt "Disable device driver synchronization?") {
-                Disable-Drivers
+                Disable-WsusDriverSync
             }
         }
         Break
     }
     ($DisableDrivers) {
-        Disable-Drivers
+        Disable-WsusDriverSync
     }
     ($DeepClean) {
         DeepClean $unneededUpdatesbyTitle $unneededUpdatesbyProductTitles
