@@ -33,6 +33,7 @@ Free and open source: [MIT License](https://github.com/awarre/Optimize-WsusServe
 * PowerShell
 * Windows Server Update Services (WSUS)
 * [SqlServer Official PowerShell module](https://docs.microsoft.com/en-us/sql/powershell/download-sql-server-ps-module?view=sql-server-ver15)
+* PowerShell 6 - [Microsoft has not ported the WSUS module to PowerShell 7(https://windowsserver.uservoice.com/forums/304618-installation-and-patching/suggestions/39267028-wsus-server-should-be-manageable-using-powershell).
 
 ### Installation
 1. Download [Optimize-WsusServer.ps1](https://github.com/awarre/Optimize-WsusServer/blob/master/Optimize-WsusServer.ps1)
