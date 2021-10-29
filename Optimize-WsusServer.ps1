@@ -78,6 +78,9 @@ param (
 )
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
+# Names that need language specific parameters
+$iisSiteString = "IIS:\Sites\WSUS-Verwaltung\Clientwebservice"
+$adminGroup = "VORDEFINIERT\Administratoren"
 
 # Recommended IIS settings: https://www.reddit.com/r/sysadmin/comments/996xul/getting_2016_updates_to_work_on_wsus/
 $recommendedIISSettings = @{
@@ -561,7 +564,7 @@ function Get-WsusIISConfig {
     $recyclingMemory = Get-IISConfigAttributeValue -ConfigElement $wsusPoolRecyclingConfig -AttributeName "memory"
     $recyclingPrivateMemory = Get-IISConfigAttributeValue -ConfigElement $wsusPoolRecyclingConfig -AttributeName "privateMemory"
 
-    $clientWebServiceConfig = Get-WebConfiguration -PSPath 'IIS:\Sites\WSUS Administration\ClientWebService' -Filter "system.web/httpRuntime"
+    $clientWebServiceConfig = Get-WebConfiguration -PSPath $iisSiteString -Filter "system.web/httpRuntime"
 
     $clientMaxRequestLength = $clientWebServiceConfig | select-object -ExpandProperty maxRequestLength
     $clientExecutionTimeout = ($clientWebServiceConfig | select-object -ExpandProperty executionTimeout).TotalSeconds
@@ -679,13 +682,13 @@ function Update-WsusIISConfig ($settingKey, $recommendedValue) {
         'ClientMaxRequestLength' {
             # Check if the IIS WSUS Client Web Service web.config is read only and make it RW if so
             Unblock-WebConfigAcl
-            Set-WebConfigurationProperty -PSPath 'IIS:\Sites\WSUS Administration\ClientWebService' -Filter "system.web/httpRuntime" -Name "maxRequestLength" -Value $recommendedValue
+            Set-WebConfigurationProperty -PSPath $iisSiteString -Filter "system.web/httpRuntime" -Name "maxRequestLength" -Value $recommendedValue
             Break
         }
         'ClientExecutionTimeout' {
             # Check if the IIS WSUS Client Web Service web.config is read only and make it RW if so
             Unblock-WebConfigAcl
-            Set-WebConfigurationProperty -PSPath 'IIS:\Sites\WSUS Administration\ClientWebService' -Filter "system.web/httpRuntime" -Name "executionTimeout" -Value ([timespan]::FromSeconds($recommendedValue))
+            Set-WebConfigurationProperty -PSPath $iisSiteString -Filter "system.web/httpRuntime" -Name "executionTimeout" -Value ([timespan]::FromSeconds($recommendedValue))
             Break
         }
         Default {}
@@ -831,10 +834,10 @@ function Unblock-WebConfigAcl {
     Grants BUILTIN\Administrators ownership and read write access to ClientWebService web.config. Also removes Read Only flag.
     #>
 
-    $wsusWebConfigPath = Get-WebConfigFile -PSPath 'IIS:\Sites\WSUS Administration\ClientWebService' | Select-Object -ExpandProperty 'FullName'
+    $wsusWebConfigPath = Get-WebConfigFile -PSPath $iisSiteString | Select-Object -ExpandProperty 'FullName'
 
-    Set-FileAclOwner $wsusWebConfigPath 'BUILTIN\Administrators'
-    Set-FileAclPermissions $wsusWebConfigPath 'BUILTIN\Administrators' 'FullControl' 'None' 'None' 'Allow'
+    Set-FileAclOwner $wsusWebConfigPath $adminGroup
+    Set-FileAclPermissions $wsusWebConfigPath $adminGroup 'FullControl' 'None' 'None' 'Allow'
     Set-ItemProperty -Path $wsusWebConfigPath -Name IsReadOnly -Value $false
 }
 
