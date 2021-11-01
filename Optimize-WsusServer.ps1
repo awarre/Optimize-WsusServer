@@ -560,7 +560,7 @@ function Get-WsusIISConfig {
     $recyclingMemory = Get-IISConfigAttributeValue -ConfigElement $wsusPoolRecyclingConfig -AttributeName "memory"
     $recyclingPrivateMemory = Get-IISConfigAttributeValue -ConfigElement $wsusPoolRecyclingConfig -AttributeName "privateMemory"
 
-    $clientWebServiceConfig = Get-WebConfiguration -PSPath $iisSiteString -Filter "system.web/httpRuntime"
+    $clientWebServiceConfig = Get-WebConfiguration -PSPath $iisPath -Filter "system.web/httpRuntime"
 
     $clientMaxRequestLength = $clientWebServiceConfig | select-object -ExpandProperty maxRequestLength
     $clientExecutionTimeout = ($clientWebServiceConfig | select-object -ExpandProperty executionTimeout).TotalSeconds
@@ -575,6 +575,14 @@ function Get-WsusIISConfig {
         ClientMaxRequestLength   = $clientMaxRequestLength
         ClientExecutionTimeout   = $clientExecutionTimeout
     }
+}
+
+function Get-WsusIISLocalizedNamespacePath {
+    # Get localized WSUS IIS web site path: https://docs.microsoft.com/fr-fr/security-updates/windowsupdateservices/18127277 - Document is in English but posted in the French docs
+    $iisSitePhysicalPath = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup\' -Name "TargetDir"
+    $iisLocalizedString = Get-Website | Where-Object {$($_.PhysicalPath).StartsWith($iisSitePhysicalPath)} | Select-Object -ExpandProperty Name
+    $iisLocalizedNamespacePath = "IIS:\Sites\$iisLocalizedString\ClientWebService"
+    return $iisLocalizedNamespacePath
 }
 
 function Test-WsusIISConfig ($settings, $recommended) {
@@ -678,13 +686,13 @@ function Update-WsusIISConfig ($settingKey, $recommendedValue) {
         'ClientMaxRequestLength' {
             # Check if the IIS WSUS Client Web Service web.config is read only and make it RW if so
             Unblock-WebConfigAcl
-            Set-WebConfigurationProperty -PSPath $iisSiteString -Filter "system.web/httpRuntime" -Name "maxRequestLength" -Value $recommendedValue
+            Set-WebConfigurationProperty -PSPath $iisPath -Filter "system.web/httpRuntime" -Name "maxRequestLength" -Value $recommendedValue
             Break
         }
         'ClientExecutionTimeout' {
             # Check if the IIS WSUS Client Web Service web.config is read only and make it RW if so
             Unblock-WebConfigAcl
-            Set-WebConfigurationProperty -PSPath $iisSiteString -Filter "system.web/httpRuntime" -Name "executionTimeout" -Value ([timespan]::FromSeconds($recommendedValue))
+            Set-WebConfigurationProperty -PSPath $iisPath -Filter "system.web/httpRuntime" -Name "executionTimeout" -Value ([timespan]::FromSeconds($recommendedValue))
             Break
         }
         Default {}
@@ -832,15 +840,9 @@ function Unblock-WebConfigAcl {
     .LINK
     https://devblogs.microsoft.com/scripting/use-powershell-to-translate-a-users-sid-to-an-active-directory-account-name/
     https://docs.microsoft.com/en-us/dotnet/api/system.security.principal.securityidentifier.-ctor?view=windowsdesktop-5.0#System_Security_Principal_SecurityIdentifier__ctor_System_String_
-    https://docs.microsoft.com/fr-fr/security-updates/windowsupdateservices/18127277 - Document is in English but posted in the French docs
     #>
 
-    # Get localized WSUS IIS web site path
-    $physicalPath = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup\' -Name "TargetDir"
-    $iisLocalizedString = Get-Website | Where-Object {$($_.PhysicalPath).StartsWith($physicalPath)} | Select-Object -ExpandProperty Name
-    $iisLocalizedNamespacePath = "IIS:\Sites\$iisLocalizedString\ClientWebService"
-
-    $wsusWebConfigPath = Get-WebConfigFile -PSPath $iisLocalizedNamespacePath | Select-Object -ExpandProperty 'FullName'
+    $wsusWebConfigPath = Get-WebConfigFile -PSPath $iisPath | Select-Object -ExpandProperty 'FullName'
 
     # Get localized BUILTIN\Administrators group
     $builtinAdminGroup = ([System.Security.Principal.SecurityIdentifier]'S-1-5-32-544').Translate([System.Security.Principal.NTAccount]).Value
