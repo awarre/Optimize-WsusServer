@@ -16,11 +16,14 @@
 .PARAMETER FirstRun
     Presents a series of prompts for user to initiate all recommended first run optimization tasks. Additional parameters will be ignored, as they will be redundant.
 
-.PARAMETER DisableDrivers
-    Disable device driver syncronization and caching.
+.PARAMETER DeclineSupersededUpdates
+Declines all updates that have been approved and are superseded by other updates. The update will only be declined if a superseding update has been approved.
 
 .PARAMETER DeepClean
     Searches through most likely categories for unneeded updates and drivers to free up massive amounts of storage and improve database responsiveness. Prompts user to approve removal before deletion.
+
+.PARAMETER DisableDrivers
+    Disable device driver syncronization and caching.
 
 .PARAMETER CheckConfig
     Validates current WSUS IIS configuration against recommended settings. Helps prevent frequent WSUS/IIS/SQL service crashes and the "RESET SERVER NODE" error.
@@ -38,7 +41,7 @@
     Creates a scheduled task to run the OptimizeDatabase function weekly.
 
 .NOTES
-  Version:        0.1.5
+  Version:        1.1.0
   Author:         Austin Warren
   Creation Date:  2020/07/31
 
@@ -74,7 +77,9 @@ param (
     $OptimizeServer,
     [Parameter()]
     [switch]
-    $OptimizeDatabase
+    $OptimizeDatabase,
+    [switch]
+    $DeclineSupersededUpdates
 )
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
@@ -397,6 +402,9 @@ function Optimize-WsusUpdates {
 
     Write-Host "Declining superceded updates"
     Invoke-WsusServerCleanup -DeclineSupersededUpdates
+
+    Write-Host "Declining additional superceded updates"
+    Decline-SupersededUpdates $TRUE
 }
 
 function Optimize-WsusDatabase {
@@ -784,7 +792,7 @@ function Invoke-DeepClean ($titles, $productTitles) {
     Get-WsusClassification
     https://docs.microsoft.com/en-us/powershell/module/wsus/get-wsusclassification?view=win10-ps
     #>
-   
+
     $declinedTotal = 0
 
     Write-Host "Make certain to carefully read the listed updates before choosing to remove them!" -BackgroundColor White -ForegroundColor Green
@@ -800,6 +808,9 @@ function Invoke-DeepClean ($titles, $productTitles) {
     #Remove drivers
     Write-Host "Searching for drivers to be removed from WSUS. This process can take a long time. Please wait." -BackgroundColor White -ForegroundColor Blue
     $declinedTotal += Remove-Updates @('Drivers') 'UpdateClassificationTitle'
+
+    Write-Host "Searching for unneeded updates superseded by newer updates. This process can take a long time. Please wait." -BackgroundColor White -ForegroundColor Blue
+    $declinedTotal += Decline-SupersededUpdates
 
     Write-Host "================DEEPCLEAN COMPLETE==================" -BackgroundColor White -ForegroundColor Blue
     Write-Host "$declinedTotal Total Updates Declined" -BackgroundColor White -ForegroundColor Blue
@@ -901,6 +912,51 @@ function Set-FileAclPermissions ($file, $accString, $rights, $inheritanceFlags, 
     Set-Acl -Path $file -AclObject $acl
 }
 
+function Decline-SupersededUpdates ($verbose){
+    <#
+    .SYNOPSIS
+    Declines approved updates that have been approved and are superseded by other updates.
+
+    .DESCRIPTION
+    Declines all updates that have been approved and are superseded by other updates. The update will only be declined if a superseding update has been approved.
+
+    .LINK
+    ApprovedStates - https://docs.microsoft.com/en-us/previous-versions/windows/desktop/aa354257(v=vs.85)
+
+    .LINK
+    IUpdate - https://docs.microsoft.com/en-us/previous-versions/windows/desktop/bb313429(v=vs.85)
+
+    .LINK
+    UpdateCollection - https://docs.microsoft.com/en-us/previous-versions/windows/desktop/ms752803(v=vs.85)
+    #>
+    $declineCount = 0
+    [reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration") | Out-Null
+    $wsusServer = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer();
+    $scope = New-Object Microsoft.UpdateServices.Administration.UpdateScope
+
+    $scope.ApprovedStates = "LatestRevisionApproved"
+    $updates = $wsusServer.GetUpdates($scope)
+
+    foreach ($update in $updates){
+        $updatesThatSupersede = $update.GetRelatedUpdates("UpdatesThatSupersedeThisUpdate")
+        if($updatesThatSupersede.Count -gt 0) {
+            foreach ($super in $updatesThatSupersede)
+            {
+                if ($super.IsApproved){
+                    $update.Decline()
+                    $declineCount++
+                    break
+                }
+            }
+        }
+    }
+
+    if($verbose) {
+        Write-Host "Osbolete Updates Declined: $declineCount"
+    } else {
+        return $declineCount
+    }
+}
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
 # Check commandline parameters.
@@ -933,6 +989,9 @@ switch($true) {
     }
     ($DisableDrivers) {
         Disable-WsusDriverSync
+    }
+    ($DeclineSupersededUpdates) {
+        Decline-SupersededUpdates
     }
     ($DeepClean) {
         Invoke-DeepClean $unneededUpdatesbyTitle $unneededUpdatesbyProductTitles
