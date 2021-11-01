@@ -83,7 +83,6 @@ param (
 )
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
-
 # Recommended IIS settings: https://www.reddit.com/r/sysadmin/comments/996xul/getting_2016_updates_to_work_on_wsus/
 $recommendedIISSettings = @{
     QueueLength              = 25000
@@ -94,6 +93,8 @@ $recommendedIISSettings = @{
     ClientMaxRequestLength   = 204800
     ClientExecutionTimeout   = 7200
 }
+
+$iisPath = Get-WsusIISLocalizedNamespacePath
 
 <#
 DeepClean
@@ -569,7 +570,7 @@ function Get-WsusIISConfig {
     $recyclingMemory = Get-IISConfigAttributeValue -ConfigElement $wsusPoolRecyclingConfig -AttributeName "memory"
     $recyclingPrivateMemory = Get-IISConfigAttributeValue -ConfigElement $wsusPoolRecyclingConfig -AttributeName "privateMemory"
 
-    $clientWebServiceConfig = Get-WebConfiguration -PSPath 'IIS:\Sites\WSUS Administration\ClientWebService' -Filter "system.web/httpRuntime"
+    $clientWebServiceConfig = Get-WebConfiguration -PSPath $iisPath -Filter "system.web/httpRuntime"
 
     $clientMaxRequestLength = $clientWebServiceConfig | select-object -ExpandProperty maxRequestLength
     $clientExecutionTimeout = ($clientWebServiceConfig | select-object -ExpandProperty executionTimeout).TotalSeconds
@@ -584,6 +585,14 @@ function Get-WsusIISConfig {
         ClientMaxRequestLength   = $clientMaxRequestLength
         ClientExecutionTimeout   = $clientExecutionTimeout
     }
+}
+
+function Get-WsusIISLocalizedNamespacePath {
+    # Get localized WSUS IIS web site path: https://docs.microsoft.com/fr-fr/security-updates/windowsupdateservices/18127277 - Document is in English but posted in the French docs
+    $iisSitePhysicalPath = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup\' -Name "TargetDir"
+    $iisLocalizedString = Get-Website | Where-Object {$($_.PhysicalPath).StartsWith($iisSitePhysicalPath)} | Select-Object -ExpandProperty Name
+    $iisLocalizedNamespacePath = "IIS:\Sites\$iisLocalizedString\ClientWebService"
+    return $iisLocalizedNamespacePath
 }
 
 function Test-WsusIISConfig ($settings, $recommended) {
@@ -687,13 +696,13 @@ function Update-WsusIISConfig ($settingKey, $recommendedValue) {
         'ClientMaxRequestLength' {
             # Check if the IIS WSUS Client Web Service web.config is read only and make it RW if so
             Unblock-WebConfigAcl
-            Set-WebConfigurationProperty -PSPath 'IIS:\Sites\WSUS Administration\ClientWebService' -Filter "system.web/httpRuntime" -Name "maxRequestLength" -Value $recommendedValue
+            Set-WebConfigurationProperty -PSPath $iisPath -Filter "system.web/httpRuntime" -Name "maxRequestLength" -Value $recommendedValue
             Break
         }
         'ClientExecutionTimeout' {
             # Check if the IIS WSUS Client Web Service web.config is read only and make it RW if so
             Unblock-WebConfigAcl
-            Set-WebConfigurationProperty -PSPath 'IIS:\Sites\WSUS Administration\ClientWebService' -Filter "system.web/httpRuntime" -Name "executionTimeout" -Value ([timespan]::FromSeconds($recommendedValue))
+            Set-WebConfigurationProperty -PSPath $iisPath -Filter "system.web/httpRuntime" -Name "executionTimeout" -Value ([timespan]::FromSeconds($recommendedValue))
             Break
         }
         Default {}
@@ -840,12 +849,19 @@ function Unblock-WebConfigAcl {
 
     .DESCRIPTION
     Grants BUILTIN\Administrators ownership and read write access to ClientWebService web.config. Also removes Read Only flag.
+
+    .LINK
+    https://devblogs.microsoft.com/scripting/use-powershell-to-translate-a-users-sid-to-an-active-directory-account-name/
+    https://docs.microsoft.com/en-us/dotnet/api/system.security.principal.securityidentifier.-ctor?view=windowsdesktop-5.0#System_Security_Principal_SecurityIdentifier__ctor_System_String_
     #>
 
-    $wsusWebConfigPath = Get-WebConfigFile -PSPath 'IIS:\Sites\WSUS Administration\ClientWebService' | Select-Object -ExpandProperty 'FullName'
+    $wsusWebConfigPath = Get-WebConfigFile -PSPath $iisPath | Select-Object -ExpandProperty 'FullName'
 
-    Set-FileAclOwner $wsusWebConfigPath 'BUILTIN\Administrators'
-    Set-FileAclPermissions $wsusWebConfigPath 'BUILTIN\Administrators' 'FullControl' 'None' 'None' 'Allow'
+    # Get localized BUILTIN\Administrators group
+    $builtinAdminGroup = ([System.Security.Principal.SecurityIdentifier]'S-1-5-32-544').Translate([System.Security.Principal.NTAccount]).Value
+
+    Set-FileAclOwner $wsusWebConfigPath $builtinAdminGroup
+    Set-FileAclPermissions $wsusWebConfigPath $builtinAdminGroup 'FullControl' 'None' 'None' 'Allow'
     Set-ItemProperty -Path $wsusWebConfigPath -Name IsReadOnly -Value $false
 }
 
