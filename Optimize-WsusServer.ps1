@@ -89,6 +89,8 @@ $recommendedIISSettings = @{
     ClientExecutionTimeout   = 7200
 }
 
+$iisPath = Get-WsusIISLocalizedNamespacePath
+
 <#
 DeepClean
 
