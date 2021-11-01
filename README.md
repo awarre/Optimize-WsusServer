@@ -33,6 +33,8 @@ Free and open source: [MIT License](https://github.com/awarre/Optimize-WsusServe
 * PowerShell
 * Windows Server Update Services (WSUS)
 * [SqlServer Official PowerShell module](https://docs.microsoft.com/en-us/sql/powershell/download-sql-server-ps-module?view=sql-server-ver15)
+* PowerShell 6 - [Microsoft has not ported the WSUS module to PowerShell 7](https://github.com/PowerShell/PowerShellModuleCoverage/issues/11)
+* [IIS Administration PowerShell module](https://blogs.iis.net/iisteam/introducing-iisadministration-in-the-powershell-gallery) - Needed for Server 2012 R2
 
 ### Installation
 1. Download [Optimize-WsusServer.ps1](https://github.com/awarre/Optimize-WsusServer/blob/master/Optimize-WsusServer.ps1)
@@ -95,6 +97,7 @@ Project Link: [https://github.com/awarre/Optimize-WsusServer](https://github.com
 <!-- REFERENCES -->
 ## References
 * [The complete guide to Microsoft WSUS and Configuration Manager SUP maintenance](https://support.microsoft.com/en-us/help/4490644/complete-guide-to-microsoft-wsus-and-configuration-manager-sup-maint)
+* [Windows Server Update Services best practices](https://docs.microsoft.com/en-us/troubleshoot/mem/configmgr/windows-server-update-services-best-practices)
 * [Reindex the WSUS Database](https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-R2-and-2008/dd939795(v=ws.10))
 * [10 Tips for the SQL Server PowerShell Scripter](https://devblogs.microsoft.com/scripting/10-tips-for-the-sql-server-powershell-scripter/)
 * [How to Check if an Index Exists on a Table in SQL Server](https://littlekendra.com/2016/01/28/how-to-check-if-an-index-exists-on-a-table-in-sql-server/)
