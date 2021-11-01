@@ -41,7 +41,7 @@ Declines all updates that have been approved and are superseded by other updates
     Creates a scheduled task to run the OptimizeDatabase function weekly.
 
 .NOTES
-  Version:        1.1.0
+  Version:        1.2.0
   Author:         Austin Warren
   Creation Date:  2020/07/31
 
@@ -427,22 +427,11 @@ function Optimize-WsusDatabase {
     $wsusSqlServerName = (get-itemproperty "HKLM:\Software\Microsoft\Update Services\Server\Setup" -Name "SqlServername").SqlServername
 
     # Set the named pipe to use based on WSUS db type
-    if ($wsusSqlServerName -match 'SQLEXPRESS') {
-        $serverInstance = 'np:\\.\pipe\MSSQL$SQLEXPRESS\sql\query'
-    }
-    elseif (($wsusSqlServerName -match '##WID') -Or ($wsusSqlServerName -match '##SSEE')) {
-        #Check OS version
-        $osVersion = [decimal]("$(([environment]::OSVersion.Version).Major).$(([environment]::OSVersion.Version).Minor)")
-
-        if ($osVersion -gt 6.2) {
-            $serverInstance = 'np:\\.\pipe\MICROSOFT##WID\tsql\query'
-        }
-        else {
-            $serverInstance = 'np:\\.\pipe\MSSQL$MICROSOFT##SSEE\sql\query'
-        }
-    }
-    else {
-        write-host "No supported WSUS database found: $serverInstance"
+    switch -Regex ($wsusSqlServerName) {
+        'SQLEXPRESS' { $serverInstance = 'np:\\.\pipe\MSSQL$SQLEXPRESS\sql\query'; break }
+        '##WID' { $serverInstance = 'np:\\.\pipe\MICROSOFT##WID\tsql\query'; break }
+        '##SSEE' { $serverInstance = 'np:\\.\pipe\MSSQL$MICROSOFT##SSEE\sql\query'; break }
+        default { $serverInstance = $wsusSqlServerName }
     }
 
     # Setting query timeout value because both of these scripts are prone to timeout
