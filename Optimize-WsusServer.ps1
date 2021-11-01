@@ -832,12 +832,25 @@ function Unblock-WebConfigAcl {
 
     .DESCRIPTION
     Grants BUILTIN\Administrators ownership and read write access to ClientWebService web.config. Also removes Read Only flag.
+
+    .LINK
+    https://devblogs.microsoft.com/scripting/use-powershell-to-translate-a-users-sid-to-an-active-directory-account-name/
+    https://docs.microsoft.com/en-us/dotnet/api/system.security.principal.securityidentifier.-ctor?view=windowsdesktop-5.0#System_Security_Principal_SecurityIdentifier__ctor_System_String_
+    https://docs.microsoft.com/fr-fr/security-updates/windowsupdateservices/18127277 - Document is in English but posted in the French docs
     #>
 
-    $wsusWebConfigPath = Get-WebConfigFile -PSPath $iisSiteString | Select-Object -ExpandProperty 'FullName'
+    # Get localized WSUS IIS web site path
+    $physicalPath = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup\' -Name "TargetDir"
+    $iisLocalizedString = Get-Website | Where-Object {$($_.PhysicalPath).StartsWith($physicalPath)} | Select-Object -ExpandProperty Name
+    $iisLocalizedNamespacePath = "IIS:\Sites\$iisLocalizedString\ClientWebService"
 
-    Set-FileAclOwner $wsusWebConfigPath $adminGroup
-    Set-FileAclPermissions $wsusWebConfigPath $adminGroup 'FullControl' 'None' 'None' 'Allow'
+    $wsusWebConfigPath = Get-WebConfigFile -PSPath $iisLocalizedNamespacePath | Select-Object -ExpandProperty 'FullName'
+
+    # Get localized BUILTIN\Administrators group
+    $builtinAdminGroup = ([System.Security.Principal.SecurityIdentifier]'S-1-5-32-544').Translate([System.Security.Principal.NTAccount]).Value
+
+    Set-FileAclOwner $wsusWebConfigPath $builtinAdminGroup
+    Set-FileAclPermissions $wsusWebConfigPath $builtinAdminGroup 'FullControl' 'None' 'None' 'Allow'
     Set-ItemProperty -Path $wsusWebConfigPath -Name IsReadOnly -Value $false
 }
 
