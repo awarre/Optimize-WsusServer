@@ -78,10 +78,6 @@ param (
 )
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
-# Names that need language specific parameters
-$iisSiteString = "IIS:\Sites\WSUS-Verwaltung\Clientwebservice"
-$adminGroup = "VORDEFINIERT\Administratoren"
-
 # Recommended IIS settings: https://www.reddit.com/r/sysadmin/comments/996xul/getting_2016_updates_to_work_on_wsus/
 $recommendedIISSettings = @{
     QueueLength              = 25000
