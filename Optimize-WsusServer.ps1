@@ -41,7 +41,7 @@ Declines all updates that have been approved and are superseded by other updates
     Creates a scheduled task to run the OptimizeDatabase function weekly.
 
 .NOTES
-  Version:        1.2.0
+  Version:        1.2.1
   Author:         Austin Warren
   Creation Date:  2020/07/31
 
@@ -93,8 +93,6 @@ $recommendedIISSettings = @{
     ClientMaxRequestLength   = 204800
     ClientExecutionTimeout   = 7200
 }
-
-$iisPath = Get-WsusIISLocalizedNamespacePath
 
 <#
 DeepClean
@@ -963,6 +961,7 @@ function Decline-SupersededUpdates ($verbose){
     }
 }
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
+$iisPath = Get-WsusIISLocalizedNamespacePath
 
 # Check commandline parameters.
 switch($true) {
