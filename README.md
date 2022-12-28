@@ -33,7 +33,7 @@ Free and open source: [MIT License](https://github.com/awarre/Optimize-WsusServe
 * PowerShell
 * Windows Server Update Services (WSUS)
 * [SqlServer Official PowerShell module](https://docs.microsoft.com/en-us/sql/powershell/download-sql-server-ps-module?view=sql-server-ver15)
-* PowerShell 6 - [Microsoft has not ported the WSUS module to PowerShell 7](https://github.com/PowerShell/PowerShellModuleCoverage/issues/11)
+* PowerShell 5 or 6 - [Microsoft has not ported the WSUS module to PowerShell 7](https://github.com/PowerShell/PowerShellModuleCoverage/issues/11)
 * [IIS Administration PowerShell module](https://blogs.iis.net/iisteam/introducing-iisadministration-in-the-powershell-gallery) - Needed for Server 2012 R2
 
 ### Installation
