@@ -1,5 +1,3 @@
-#Requires -modules SqlServer
-
 <#
 .SYNOPSIS
     Comprehensive Windows Server Update Services (WSUS) configuration and optimization script.
@@ -81,6 +79,25 @@ param (
     [switch]
     $DeclineSupersededUpdates
 )
+
+#Check if the sqlmodule is installed for invoke-sqlcmd
+$Module=Get-Module -Name SqlServer -ListAvailable
+if($Module.count -eq 0) 
+{ 
+    Write-Host "SqlServer Powershell module is not available" -ForegroundColor yellow  
+    $Confirm= Read-Host Are you sure you want to install module? [Y] Yes [N] No 
+    if($Confirm -match "[yY]") 
+    { 
+        Write-host "Installing SqlServer  PowerShell module..."
+        Install-Module SqlServer -Repository PSGallery -Scope CurrentUser -AllowClobber -Force
+    }
+    else
+    {
+        Write-Host "SqlServer PowerShell module is required to run this script. Please install module using Install-Module SqlServer cmdlet." 
+        Exit
+    }
+}
+
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
 # Recommended IIS settings: https://www.reddit.com/r/sysadmin/comments/996xul/getting_2016_updates_to_work_on_wsus/
