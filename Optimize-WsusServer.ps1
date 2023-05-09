@@ -437,11 +437,11 @@ function Optimize-WsusDatabase {
 
     Write-Host "Creating custom indexes in WSUS index if they don't already exist. This will speed up future database optimizations."
     #Create custom indexes in the database if they don't already exist
-    Invoke-Sqlcmd -query $createCustomIndexesSQLQuery -ServerInstance $serverInstance -QueryTimeout 120
+    Invoke-Sqlcmd -query $createCustomIndexesSQLQuery -ServerInstance $serverInstance -QueryTimeout 120 -Encrypt Optional
 
     Write-Host "Running WSUS SQL database maintenence script. This can take an extremely long time on the first run."
     #Run the WSUS SQL database maintenance script
-    Invoke-Sqlcmd -query $wsusDBMaintenanceSQLQuery -ServerInstance $serverInstance -QueryTimeout 40000
+    Invoke-Sqlcmd -query $wsusDBMaintenanceSQLQuery -ServerInstance $serverInstance -QueryTimeout 40000 -Encrypt Optional
 }
 
 function New-WsusMaintainenceTask($interval) {
