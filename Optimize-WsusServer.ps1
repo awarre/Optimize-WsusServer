@@ -80,6 +80,15 @@ param (
     $DeclineSupersededUpdates
 )
 
+#Check if script is running with Administrator priveliges
+Write-host "Checking to make sure you have Local Admin rights" -foreground yellow
+If (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
+{
+    Write-Warning "Please run this script as an Administrator!"
+    If (!($psISE)){"Press any key to continue…";[void][System.Console]::ReadKey($true)}
+    Exit 1
+}
+
 #Check if the sqlmodule is installed for invoke-sqlcmd
 $Module=Get-Module -Name SqlServer -ListAvailable
 if($Module.count -eq 0) 
