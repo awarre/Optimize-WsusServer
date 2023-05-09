@@ -1,5 +1,3 @@
-#Requires -modules SqlServer
-
 <#
 .SYNOPSIS
     Comprehensive Windows Server Update Services (WSUS) configuration and optimization script.
@@ -81,6 +79,34 @@ param (
     [switch]
     $DeclineSupersededUpdates
 )
+
+#Check if script is running with Administrator priveliges
+Write-host "Checking to make sure you have Local Admin rights" -foreground yellow
+If (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
+{
+    Write-Warning "Please run this script as an Administrator!"
+    If (!($psISE)){"Press any key to continue…";[void][System.Console]::ReadKey($true)}
+    Exit 1
+}
+
+#Check if the sqlmodule is installed for invoke-sqlcmd
+$Module=Get-Module -Name SqlServer -ListAvailable
+if($Module.count -eq 0) 
+{ 
+    Write-Host "SqlServer Powershell module is not available" -ForegroundColor yellow  
+    $Confirm= Read-Host Are you sure you want to install module? [Y] Yes [N] No 
+    if($Confirm -match "[yY]") 
+    { 
+        Write-host "Installing SqlServer  PowerShell module..."
+        Install-Module SqlServer -Repository PSGallery -Scope CurrentUser -AllowClobber -Force
+    }
+    else
+    {
+        Write-Host "SqlServer PowerShell module is required to run this script. Please install module using Install-Module SqlServer cmdlet." 
+        Exit
+    }
+}
+
 #----------------------------------------------------------[Declarations]----------------------------------------------------------
 
 # Recommended IIS settings: https://www.reddit.com/r/sysadmin/comments/996xul/getting_2016_updates_to_work_on_wsus/
@@ -437,11 +463,11 @@ function Optimize-WsusDatabase {
 
     Write-Host "Creating custom indexes in WSUS index if they don't already exist. This will speed up future database optimizations."
     #Create custom indexes in the database if they don't already exist
-    Invoke-Sqlcmd -query $createCustomIndexesSQLQuery -ServerInstance $serverInstance -QueryTimeout 120
+    Invoke-Sqlcmd -query $createCustomIndexesSQLQuery -ServerInstance $serverInstance -QueryTimeout 120 -Encrypt Optional
 
     Write-Host "Running WSUS SQL database maintenence script. This can take an extremely long time on the first run."
     #Run the WSUS SQL database maintenance script
-    Invoke-Sqlcmd -query $wsusDBMaintenanceSQLQuery -ServerInstance $serverInstance -QueryTimeout 40000
+    Invoke-Sqlcmd -query $wsusDBMaintenanceSQLQuery -ServerInstance $serverInstance -QueryTimeout 40000 -Encrypt Optional
 }
 
 function New-WsusMaintainenceTask($interval) {
