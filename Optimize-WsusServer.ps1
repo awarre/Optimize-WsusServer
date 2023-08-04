@@ -435,13 +435,19 @@ function Optimize-WsusDatabase {
     # Setting query timeout value because both of these scripts are prone to timeout
     # https://devblogs.microsoft.com/scripting/10-tips-for-the-sql-server-powershell-scripter/
 
+    # Microsoft made some changes in MSOLEDBSQL, enabling encrypted channel by default. Great for security!
+    # But WID is not affected and it is unencrypted by default. After the changes, if you run this function 
+    # without `-Encrypt Optional`, you will get an error like this:
+    # Invoke-Sqlcmd: The instance of SQL Server you attempted to connect to does not support encryption
+    # We went back to insecure channel because WID does not have that feature by default.
+
     Write-Host "Creating custom indexes in WSUS index if they don't already exist. This will speed up future database optimizations."
     #Create custom indexes in the database if they don't already exist
-    Invoke-Sqlcmd -query $createCustomIndexesSQLQuery -ServerInstance $serverInstance -QueryTimeout 120
+    Invoke-Sqlcmd -query $createCustomIndexesSQLQuery -ServerInstance $serverInstance -QueryTimeout 120 -Encrypt Optional
 
     Write-Host "Running WSUS SQL database maintenence script. This can take an extremely long time on the first run."
     #Run the WSUS SQL database maintenance script
-    Invoke-Sqlcmd -query $wsusDBMaintenanceSQLQuery -ServerInstance $serverInstance -QueryTimeout 40000
+    Invoke-Sqlcmd -query $wsusDBMaintenanceSQLQuery -ServerInstance $serverInstance -QueryTimeout 40000 -Encrypt Optional
 }
 
 function New-WsusMaintainenceTask($interval) {
